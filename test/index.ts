@@ -4,11 +4,11 @@ import { z } from "zod";
 import { createDeepAgent } from "deepagents";
 
 const llm = new ChatOpenAI({
-  model: "qwen/qwen3-4b-thinking-2507",
+  model: "glm-4.7-flash",
   temperature: 0.9,
-  apiKey: "",
+  apiKey: "sk-NfOtH3XbsZ5T5y13JLw9nw",
   configuration: {
-    baseURL: "http://127.0.0.1:1234/v1",
+    baseURL: "https://llm.orielhaim.com/v1",
   },
 });
 
