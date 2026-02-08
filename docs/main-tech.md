@@ -39,18 +39,46 @@
 - Bun's built-in HTTP and WebSocket server is used for the `web` channel type.
 - No external framework needed for basic serving. If routing complexity grows, a lightweight layer (like Hono or Elysia) can be added.
 
-## 3. Brain Stack
+## 3. Body & Execution
 
-### 3.1 LangChain / LangGraph
+### 3.1 Code Execution Model
+Zed does not use a traditional tool registry. The Body's execution model is direct code execution: the Brain writes Bun/TypeScript scripts and the Body runs them as subprocesses via `Bun.spawn`. Results are captured and returned to the Brain.
+
+### 3.2 Desktop Automation — nut.js
+For Nodes with desktop control capability, nut.js provides cross-platform desktop automation: mouse control, keyboard control, screen capture, and image-based element location. It runs on the Node client and is exposed to Zed's scripts through the `@zed/nodes` standard library.
+
+### 3.3 Remote Execution
+Node clients connect to Zed's Body Core over persistent WebSocket connections. Remote code execution on Nodes is handled by the Node client, which receives instructions over the WebSocket and executes them locally.
+
+### 3.4 Package Ecosystem
+Zed has full access to npm via Bun's package manager. Any npm package can be installed and used in execution scripts. This is the primary mechanism for Zed to acquire new capabilities without architectural changes.
+
+## 4. Brain Stack
+
+### 4.1 LangChain / LangGraph
 - LangChain provides the foundational abstractions for working with LLMs: chains, tools, output parsers, retrievers.
 - LangGraph provides the graph-based orchestration layer for complex agent workflows: stateful, multi-step, branching, looping execution graphs.
 - Used as the backbone of the Brain's cognitive architecture.
 
-### 3.2 Deep Agents
+### 4.2 Deep Agents
 - Used alongside LangChain/LangGraph for advanced agentic patterns: planning, reflection, self-critique, tool orchestration.
 
-## 4. Internal Communication
+## 5. Internal Communication
 The specific technology for the internal event fabric between centers (Gateway, Brain, Body, Model Center) is not yet locked. Candidates include direct in-process event emitters (for a monorepo/single-process dev mode), Redis Streams or NATS for a multi-process deployment, or a simple HTTP/WebSocket RPC layer. The choice will be driven by deployment topology and performance requirements.
 
-## 5. Storage & Persistence
+## 6. Storage & Persistence
 Not yet fully specified. The principle is: each center owns its own data. The Gateway owns channel configs and identity mappings. The Brain owns memories and plans. The Model Center owns routing policies and usage logs. Storage backends will be chosen per-center based on the data's nature (structured, unstructured, time-series, vector, etc.).
+
+## 7. Body Stack
+
+### 7.1 Browser Automation
+For headless browser control, the primary candidate is Playwright (cross-browser, headless, strong automation API).
+
+### 7.2 Desktop Control (Remote Nodes)
+Desktop control on remote nodes works through a screenshot-and-input loop: the node client captures screenshots and sends them to Zed, Zed analyzes them through the Model Center's vision capabilities, and sends back mouse/keyboard commands. The node client implementation uses platform-native APIs for input simulation (e.g., xdotool on Linux, Core Graphics on macOS, Windows Input Simulator on Windows).
+
+### 7.3 Node Client
+The node client is a lightweight, cross-platform application. Primary implementation in TypeScript/Bun for portability. Communicates with Zed's Body Core via WebSocket over TLS. Designed to be minimal - most of the intelligence lives in Zed's Brain, not in the node.
+
+### 7.4 IoT / Embedded Nodes
+For resource-constrained devices (Raspberry Pi, ESP32), the node client may need a lighter implementation. A minimal protocol adapter in Python or C could serve as the client, exposing device capabilities through the standard node protocol.

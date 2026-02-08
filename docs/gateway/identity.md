@@ -66,7 +66,22 @@ Some channel types involve multiple senders on the same connection. For example:
 
 For messaging platforms, this is straightforward - each message carries a sender ID that the platform provides. For sensor-based channels (cameras, microphones), sender identification becomes a harder problem that will require specialized processing (voice recognition, face recognition). The architecture supports this by making identity resolution a pluggable step in the normalization pipeline - different channel types can use different resolution strategies.
 
-## 4. Permissions Model
+## 4. Presence Tracking
+
+The Gateway tracks presence signals for every known external identity across all active channels. Presence is the raw observational data about where a person is right now - not a judgment about where to contact them (that's the Brain's job).
+
+### 4.1 What the Gateway Tracks
+Each connector reports whatever presence information its platform provides:
+- **Online/offline status** - Telegram, WhatsApp, and Discord all expose some form of "last seen" or "online" indicator.
+- **Activity signals** - A message sent on a channel is the strongest presence signal: the person is definitely active there right now. Typing indicators, read receipts, and reactions are weaker but still useful signals.
+- **Connection events** - Some platforms emit events when a user comes online or goes offline. The connector captures these.
+
+### 4.2 Presence as Raw Data
+The Gateway does not interpret presence. It does not decide "the owner is on Discord now, so I should route there." It simply maintains a per-profile presence record: for each of the profile's linked external identities, what is the latest presence signal, and when was it received.
+
+This data is available to the Brain via the internal event fabric. Presence changes are emitted as internal events (lightweight, high-frequency). The Brain's Presence Awareness system (see [brain communication ](../brain/communication.md)) consumes these events and uses them for intelligent routing decisions.
+
+## 5. Permissions Model
 
 Permissions in Zed are not a traditional RBAC system with a management UI. They are part of Zed's identity and social awareness.
 
@@ -90,7 +105,7 @@ That said, the system provides a structured foundation:
 
 These are soft constraints: the Brain uses them as part of its reasoning, not as hard gates. The Brain has the final say on how to act.
 
-## 5. Self-Management
+## 6. Self-Management
 
 Zed can modify profiles and permissions itself. This is essential for its autonomy:
 - The Brain can promote a stranger to "known" after positive interactions.
