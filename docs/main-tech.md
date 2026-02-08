@@ -44,7 +44,7 @@
 ### 3.1 Code Execution Model
 Zed does not use a traditional tool registry. The Body's execution model is direct code execution: the Brain writes Bun/TypeScript scripts and the Body runs them as subprocesses via `Bun.spawn`. Results are captured and returned to the Brain.
 
-### 3.2 Desktop Automation — nut.js
+### 3.2 Desktop Automation - nut.js
 For Nodes with desktop control capability, nut.js provides cross-platform desktop automation: mouse control, keyboard control, screen capture, and image-based element location. It runs on the Node client and is exposed to Zed's scripts through the `@zed/nodes` standard library.
 
 ### 3.3 Remote Execution
@@ -53,32 +53,45 @@ Node clients connect to Zed's Body Core over persistent WebSocket connections. R
 ### 3.4 Package Ecosystem
 Zed has full access to npm via Bun's package manager. Any npm package can be installed and used in execution scripts. This is the primary mechanism for Zed to acquire new capabilities without architectural changes.
 
-## 4. Brain Stack
+## 4. Model Center Stack
 
-### 4.1 LangChain / LangGraph
+### 4.1 LiteLLM
+The Model Center is built on LiteLLM, running as a proxy server. LiteLLM provides a unified OpenAI-compatible API over 100+ model providers (OpenAI, Anthropic, Google, Mistral, Cohere, Ollama, and more). It handles load balancing, fallbacks, retries, cost tracking, rate limit awareness, and streaming - all out of the box.
+
+Zed's entire model access - from the Brain (via LangChain/LangGraph), from the Body (via `@zed/models`), and from internal systems - routes through the LiteLLM proxy.
+
+### 4.2 Ollama
+For local model inference. Ollama runs open-source models on Zed's own hardware with zero external dependencies. Used as a fallback provider when cloud providers are unavailable, and as the primary provider for high-volume low-cost tasks (embeddings, classification, drafting). Also used on self-provisioned GPU Nodes for expanded local capacity.
+
+### 4.3 LangChain Model Integration
+The Brain uses LangChain's model abstractions, configured to point at the Model Center's LiteLLM endpoint. This means the Brain's LangGraph cognitive workflows are decoupled from any specific model provider - they call the Model Center, and the Model Center routes to the best available provider.
+
+## 5. Brain Stack
+
+### 5.1 LangChain / LangGraph
 - LangChain provides the foundational abstractions for working with LLMs: chains, tools, output parsers, retrievers.
 - LangGraph provides the graph-based orchestration layer for complex agent workflows: stateful, multi-step, branching, looping execution graphs.
 - Used as the backbone of the Brain's cognitive architecture.
 
-### 4.2 Deep Agents
+### 5.2 Deep Agents
 - Used alongside LangChain/LangGraph for advanced agentic patterns: planning, reflection, self-critique, tool orchestration.
 
-## 5. Internal Communication
+## 6. Internal Communication
 The specific technology for the internal event fabric between centers (Gateway, Brain, Body, Model Center) is not yet locked. Candidates include direct in-process event emitters (for a monorepo/single-process dev mode), Redis Streams or NATS for a multi-process deployment, or a simple HTTP/WebSocket RPC layer. The choice will be driven by deployment topology and performance requirements.
 
-## 6. Storage & Persistence
+## 7. Storage & Persistence
 Not yet fully specified. The principle is: each center owns its own data. The Gateway owns channel configs and identity mappings. The Brain owns memories and plans. The Model Center owns routing policies and usage logs. Storage backends will be chosen per-center based on the data's nature (structured, unstructured, time-series, vector, etc.).
 
-## 7. Body Stack
+## 8. Body Stack
 
-### 7.1 Browser Automation
+### 8.1 Browser Automation
 For headless browser control, the primary candidate is Playwright (cross-browser, headless, strong automation API).
 
-### 7.2 Desktop Control (Remote Nodes)
+### 8.2 Desktop Control (Remote Nodes)
 Desktop control on remote nodes works through a screenshot-and-input loop: the node client captures screenshots and sends them to Zed, Zed analyzes them through the Model Center's vision capabilities, and sends back mouse/keyboard commands. The node client implementation uses platform-native APIs for input simulation (e.g., xdotool on Linux, Core Graphics on macOS, Windows Input Simulator on Windows).
 
-### 7.3 Node Client
+### 8.3 Node Client
 The node client is a lightweight, cross-platform application. Primary implementation in TypeScript/Bun for portability. Communicates with Zed's Body Core via WebSocket over TLS. Designed to be minimal - most of the intelligence lives in Zed's Brain, not in the node.
 
-### 7.4 IoT / Embedded Nodes
+### 8.4 IoT / Embedded Nodes
 For resource-constrained devices (Raspberry Pi, ESP32), the node client may need a lighter implementation. A minimal protocol adapter in Python or C could serve as the client, exposing device capabilities through the standard node protocol.
