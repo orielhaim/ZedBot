@@ -3,7 +3,6 @@ import { run } from '@grammyjs/runner';
 
 export class TelegramInstance {
   constructor(config, logger) {
-    console.log(config)
     this.config = config;
     this.logger = logger;
     this.bot = null;

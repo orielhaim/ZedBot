@@ -15,6 +15,42 @@ db.run(`
     );
   `);
 
+db.run(`
+    CREATE TABLE IF NOT EXISTS profiles (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      metadata TEXT,
+      created_at INTEGER DEFAULT (unixepoch()),
+      updated_at INTEGER DEFAULT (unixepoch())
+    );
+  `);
+
+db.run(`
+    CREATE TABLE IF NOT EXISTS connections (
+      id TEXT PRIMARY KEY,
+      profile_id TEXT NOT NULL,
+      platform_type TEXT NOT NULL,
+      platform_id TEXT NOT NULL,
+      metadata TEXT,
+      created_at INTEGER DEFAULT (unixepoch()),
+      updated_at INTEGER DEFAULT (unixepoch()),
+      FOREIGN KEY(profile_id) REFERENCES profiles(id),
+      UNIQUE(platform_type, platform_id)
+    );
+  `);
+
+db.run(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      profile_id TEXT NOT NULL,
+      thread_id TEXT NOT NULL,
+      metadata TEXT,
+      created_at INTEGER DEFAULT (unixepoch()),
+      updated_at INTEGER DEFAULT (unixepoch()),
+      FOREIGN KEY(profile_id) REFERENCES profiles(id)
+    );
+  `);
+
 console.log("[DB] Schema initialized.");
 
 const result = db.query("SELECT COUNT(*) as count FROM channels").get();

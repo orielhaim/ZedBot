@@ -3,3 +3,5 @@ node_modules
 config/*
 old
 test
+data/*
+bun.lock

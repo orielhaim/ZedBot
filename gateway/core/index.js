@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 import { ChannelRegistry } from './registry.js';
 import { ChannelRepository } from './repo.js';
 import { join } from 'path';
+import { brain } from '../../brain/index.js';
 
 export class Gateway extends EventEmitter {
   constructor(rootPath) {
@@ -16,8 +17,6 @@ export class Gateway extends EventEmitter {
   }
 
   async init() {
-    console.log('[Gateway] Initializing...');
-
     await this.repo.resetAllStatuses();
 
     await this.loadChannels();
@@ -34,8 +33,6 @@ export class Gateway extends EventEmitter {
 
       await this.startChannel(config, ChannelClass);
     }
-
-    console.log('[Gateway] Initialization complete.');
   }
 
   async loadChannels() {
@@ -58,7 +55,6 @@ export class Gateway extends EventEmitter {
   }
 
   async startChannel(config, ChannelClass) {
-    console.log(`[Gateway] Starting channel ${config.id}...`);
     try {
       await this.repo.updateStatus(config.id, 'starting');
 
@@ -103,9 +99,36 @@ export class Gateway extends EventEmitter {
     console.log('[Gateway] Stopped.');
   }
 
-  handleEvent(event) {
+  async handleEvent(event) {
     if (!event.timestamp) event.timestamp = Date.now();
     this.emit('event', event);
+
+    if (event.type === 'message') {
+      try {
+        const response = await brain.processMessage(event);
+        if (response && response.text) {
+          const channel = this.registry.getChannel(event.channelId);
+          if (channel) {
+             // Determine target chat ID based on channel type
+             let targetChatId;
+             if (event.channelType === 'telegram') {
+                 targetChatId = event.raw.chat?.id || event.raw.from?.id;
+             }
+             
+             if (targetChatId) {
+                await channel.send({
+                    targetChatId: targetChatId,
+                    content: { text: response.text }
+                });
+             } else {
+                 console.warn(`[Gateway] Could not determine target chat ID for event ${event.id}`);
+             }
+          }
+        }
+      } catch (err) {
+        console.error('[Gateway] Error processing message via Brain:', err);
+      }
+    }
   }
 
   // --- Internal API ---
